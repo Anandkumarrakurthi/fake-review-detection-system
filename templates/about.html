@@ -1,0 +1,368 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="about-section py-5">
+    <div class="container">
+        <div class="section-header text-center mb-5">
+            <h2 class="display-5 fw-bold mb-3">
+                <i class="fas fa-info-circle text-primary me-2"></i>
+                About FakeReviewGuard
+            </h2>
+            <p class="lead text-muted">AI-powered solution for detecting fraudulent reviews in e-commerce</p>
+        </div>
+
+        <!-- Project Overview -->
+        <div class="card shadow-lg border-0 mb-4">
+            <div class="card-body p-5">
+                <h3 class="fw-bold mb-4"><i class="fas fa-book-open text-primary me-2"></i>Project Overview</h3>
+                <p class="lead mb-4">
+                    Online marketplaces rely heavily on customer reviews to influence purchasing decisions, making them a critical factor 
+                    for both consumers and sellers. However, a significant portion of reviews may be fake, biased, or misleading, resulting 
+                    in distorted product perception and reduced trust.
+                </p>
+                <p>
+                    This project presents an <strong>intelligent Fake Review Detection Model</strong> designed to automatically identify 
+                    suspicious or fraudulent reviews using advanced machine learning techniques. The system leverages a rich set of features 
+                    extracted from product reviews, including sentiment score, star rating, review length, verified purchase status, and 
+                    helpful vote count.
+                </p>
+            </div>
+        </div>
+
+        <!-- Methodology -->
+        <div class="card shadow-lg border-0 mb-4">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0"><i class="fas fa-cogs me-2"></i>Methodology</h4>
+            </div>
+            <div class="card-body p-4">
+                <div class="row g-4">
+                    <div class="col-md-6">
+                        <div class="methodology-card">
+                            <div class="method-icon bg-primary bg-opacity-10 text-primary">
+                                <i class="fas fa-database fa-2x"></i>
+                            </div>
+                            <h5 class="mt-3 fw-bold">Data Collection & Preprocessing</h5>
+                            <ul class="text-muted">
+                                <li>Dataset with 6,327 Amazon product reviews</li>
+                                <li>Feature extraction from review metadata</li>
+                                <li>Handling missing values and outliers</li>
+                                <li>Data normalization using StandardScaler</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="methodology-card">
+                            <div class="method-icon bg-success bg-opacity-10 text-success">
+                                <i class="fas fa-project-diagram fa-2x"></i>
+                            </div>
+                            <h5 class="mt-3 fw-bold">Feature Engineering</h5>
+                            <ul class="text-muted">
+                                <li>Sentiment score calculation</li>
+                                <li>Review length and word count analysis</li>
+                                <li>Verification status encoding</li>
+                                <li>Anomaly pattern detection rules</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="methodology-card">
+                            <div class="method-icon bg-warning bg-opacity-10 text-warning">
+                                <i class="fas fa-robot fa-2x"></i>
+                            </div>
+                            <h5 class="mt-3 fw-bold">Model Training</h5>
+                            <ul class="text-muted">
+                                <li>Random Forest Classifier (200 estimators)</li>
+                                <li>XGBoost Classifier (gradient boosting)</li>
+                                <li>Logistic Regression (baseline model)</li>
+                                <li>Ensemble approach with majority voting</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="methodology-card">
+                            <div class="method-icon bg-danger bg-opacity-10 text-danger">
+                                <i class="fas fa-chart-bar fa-2x"></i>
+                            </div>
+                            <h5 class="mt-3 fw-bold">Evaluation & Validation</h5>
+                            <ul class="text-muted">
+                                <li>70-15-15 train-validation-test split</li>
+                                <li>Accuracy, Precision, Recall, F1-Score</li>
+                                <li>ROC-AUC curve analysis</li>
+                                <li>Cross-validation and hyperparameter tuning</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Key Features -->
+        <div class="card shadow-lg border-0 mb-4">
+            <div class="card-header bg-success text-white">
+                <h4 class="mb-0"><i class="fas fa-check-double me-2"></i>Key Features</h4>
+            </div>
+            <div class="card-body p-4">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <div class="d-flex">
+                            <div class="feature-bullet text-success me-3">
+                                <i class="fas fa-check-circle fa-2x"></i>
+                            </div>
+                            <div>
+                                <h6 class="fw-bold">Sentiment-Rating Consistency Check</h6>
+                                <p class="text-muted small mb-0">Detects inconsistencies between review sentiment and star rating</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="d-flex">
+                            <div class="feature-bullet text-success me-3">
+                                <i class="fas fa-check-circle fa-2x"></i>
+                            </div>
+                            <div>
+                                <h6 class="fw-bold">Verification Status Analysis</h6>
+                                <p class="text-muted small mb-0">Flags unverified purchases with extreme opinions</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="d-flex">
+                            <div class="feature-bullet text-success me-3">
+                                <i class="fas fa-check-circle fa-2x"></i>
+                            </div>
+                            <div>
+                                <h6 class="fw-bold">Review Length Anomaly Detection</h6>
+                                <p class="text-muted small mb-0">Identifies suspiciously short or long reviews</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="d-flex">
+                            <div class="feature-bullet text-success me-3">
+                                <i class="fas fa-check-circle fa-2x"></i>
+                            </div>
+                            <div>
+                                <h6 class="fw-bold">Engagement Pattern Analysis</h6>
+                                <p class="text-muted small mb-0">Evaluates helpful vote patterns relative to review content</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="d-flex">
+                            <div class="feature-bullet text-success me-3">
+                                <i class="fas fa-check-circle fa-2x"></i>
+                            </div>
+                            <div>
+                                <h6 class="fw-bold">Real-time Prediction</h6>
+                                <p class="text-muted small mb-0">Instant classification with confidence scores</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="d-flex">
+                            <div class="feature-bullet text-success me-3">
+                                <i class="fas fa-check-circle fa-2x"></i>
+                            </div>
+                            <div>
+                                <h6 class="fw-bold">Interactive Visualizations</h6>
+                                <p class="text-muted small mb-0">Comprehensive dashboards with Plotly charts</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results -->
+        <div class="card shadow-lg border-0 mb-4">
+            <div class="card-header bg-dark text-white">
+                <h4 class="mb-0"><i class="fas fa-trophy me-2"></i>Results & Performance</h4>
+            </div>
+            <div class="card-body p-4">
+                <div class="alert alert-success">
+                    <h5 class="alert-heading"><i class="fas fa-star me-2"></i>Outstanding Performance Achieved!</h5>
+                    <p class="mb-0">
+                        Experimental results demonstrate that the <strong>XGBoost model</strong> effectively detects anomalous patterns 
+                        with <strong>99.58% accuracy</strong> and <strong>99.93% ROC-AUC score</strong>, significantly improving the 
+                        reliability of customer feedback data.
+                    </p>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-hover table-bordered">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Model</th>
+                                <th>Accuracy</th>
+                                <th>Precision</th>
+                                <th>Recall</th>
+                                <th>F1-Score</th>
+                                <th>ROC-AUC</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="table-success">
+                                <td class="fw-bold">XGBoost <span class="badge bg-success">Best</span></td>
+                                <td>99.58%</td>
+                                <td>96.23%</td>
+                                <td>96.23%</td>
+                                <td>96.23%</td>
+                                <td>99.93%</td>
+                            </tr>
+                            <tr>
+                                <td class="fw-bold">Random Forest</td>
+                                <td>99.68%</td>
+                                <td>98.08%</td>
+                                <td>96.23%</td>
+                                <td>97.14%</td>
+                                <td>99.93%</td>
+                            </tr>
+                            <tr>
+                                <td class="fw-bold">Logistic Regression</td>
+                                <td>82.42%</td>
+                                <td>21.78%</td>
+                                <td>83.02%</td>
+                                <td>34.51%</td>
+                                <td>91.12%</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Technology Stack -->
+        <div class="card shadow-lg border-0 mb-4">
+            <div class="card-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                <h4 class="mb-0"><i class="fas fa-laptop-code me-2"></i>Technology Stack</h4>
+            </div>
+            <div class="card-body p-4">
+                <div class="row g-4">
+                    <div class="col-md-3 text-center">
+                        <div class="tech-card">
+                            <i class="fab fa-python fa-4x text-primary mb-3"></i>
+                            <h6 class="fw-bold">Python 3.10+</h6>
+                            <p class="small text-muted">Core Programming Language</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3 text-center">
+                        <div class="tech-card">
+                            <i class="fas fa-flask fa-4x text-dark mb-3"></i>
+                            <h6 class="fw-bold">Flask 2.3</h6>
+                            <p class="small text-muted">Web Framework</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3 text-center">
+                        <div class="tech-card">
+                            <i class="fas fa-robot fa-4x text-success mb-3"></i>
+                            <h6 class="fw-bold">Scikit-Learn</h6>
+                            <p class="small text-muted">Machine Learning</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3 text-center">
+                        <div class="tech-card">
+                            <i class="fas fa-bolt fa-4x text-warning mb-3"></i>
+                            <h6 class="fw-bold">XGBoost</h6>
+                            <p class="small text-muted">Gradient Boosting</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3 text-center">
+                        <div class="tech-card">
+                            <i class="fas fa-chart-line fa-4x text-info mb-3"></i>
+                            <h6 class="fw-bold">Plotly</h6>
+                            <p class="small text-muted">Interactive Visualizations</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3 text-center">
+                        <div class="tech-card">
+                            <i class="fas fa-table fa-4x text-danger mb-3"></i>
+                            <h6 class="fw-bold">Pandas & NumPy</h6>
+                            <p class="small text-muted">Data Processing</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3 text-center">
+                        <div class="tech-card">
+                            <i class="fab fa-bootstrap fa-4x text-purple mb-3" style="color: #7952b3;"></i>
+                            <h6 class="fw-bold">Bootstrap 5</h6>
+                            <p class="small text-muted">Frontend Framework</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3 text-center">
+                        <div class="tech-card">
+                            <i class="fab fa-js-square fa-4x text-warning mb-3"></i>
+                            <h6 class="fw-bold">JavaScript & jQuery</h6>
+                            <p class="small text-muted">Frontend Interactivity</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Impact & Future Work -->
+        <div class="row g-4">
+            <div class="col-lg-6">
+                <div class="card shadow-lg border-0 h-100">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0"><i class="fas fa-bullseye me-2"></i>Project Impact</h5>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-unstyled">
+                            <li class="mb-3">
+                                <i class="fas fa-check-circle text-success me-2"></i>
+                                <strong>Enhanced Trust:</strong> Improves credibility of e-commerce platforms
+                            </li>
+                            <li class="mb-3">
+                                <i class="fas fa-check-circle text-success me-2"></i>
+                                <strong>Better Decisions:</strong> Helps consumers make informed purchasing choices
+                            </li>
+                            <li class="mb-3">
+                                <i class="fas fa-check-circle text-success me-2"></i>
+                                <strong>Seller Protection:</strong> Identifies fraudulent competitive attacks
+                            </li>
+                            <li class="mb-3">
+                                <i class="fas fa-check-circle text-success me-2"></i>
+                                <strong>Platform Integrity:</strong> Maintains marketplace reputation and quality
+                            </li>
+                            <li class="mb-3">
+                                <i class="fas fa-check-circle text-success me-2"></i>
+                                <strong>Scalable Solution:</strong> Data-driven approach for large-scale deployment
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="card shadow-lg border-0 h-100">
+                    <div class="card-header bg-warning text-dark">
+                        <h5 class="mb-0"><i class="fas fa-rocket me-2"></i>Future Enhancements</h5>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-unstyled">
+                            <li class="mb-3">
+                                <i class="fas fa-arrow-right text-warning me-2"></i>
+                                Deep learning models (BERT, RoBERTa) for text analysis
+                            </li>
+                            <li class="mb-3">
+                                <i class="fas fa-arrow-right text-warning me-2"></i>
+                                Reviewer behavior pattern analysis and profiling
+                            </li>
+                            <li class="mb-3">
+                                <i class="fas fa-arrow-right text-warning me-2"></i>
+                                Time-series analysis for review burst detection
+                            </li>
+                            <li class="mb-3">
+                                <i class="fas fa-arrow-right text-warning me-2"></i>
+                                Multi-language support for global marketplace
+                            </li>
+                            <li class="mb-3">
+                                <i class="fas fa-arrow-right text-warning me-2"></i>
+                                API integration with major e-commerce platforms
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
