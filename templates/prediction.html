@@ -1,0 +1,591 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    .prediction-wrapper { max-width: 1200px; margin: 0 auto; padding: 2rem 1rem 4rem; }
+    .pred-header { text-align: center; margin-bottom: 2.5rem; }
+    .pred-header h1 {
+        font-weight: 800; font-size: 2.4rem;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+    .pred-header p { color: #6c757d; font-size: 1.05rem; }
+
+    .config-badge {
+        display: inline-block; background: #eef2ff; color: #4338ca;
+        border: 1px solid #c7d2fe; border-radius: 999px;
+        padding: .35rem 1rem; font-size: .82rem; font-weight: 600; margin-top: .5rem;
+    }
+
+    /* Form card */
+    .form-card {
+        background: #fff; border-radius: 20px;
+        box-shadow: 0 12px 40px rgba(0,0,0,.08);
+        padding: 2rem; margin-bottom: 2rem;
+    }
+    .form-card h4 {
+        font-weight: 700; margin-bottom: 1.5rem; color: #1a1a2e;
+        display: flex; align-items: center; gap: .5rem;
+    }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+    .form-grid .full-width { grid-column: 1 / -1; }
+    @media (max-width: 768px) { .form-grid { grid-template-columns: 1fr; } }
+
+    .form-group label {
+        font-weight: 600; color: #343a40; font-size: .9rem;
+        margin-bottom: .4rem; display: block;
+    }
+    .form-group label .hint { font-weight: 400; color: #adb5bd; font-size: .78rem; }
+    .form-group input, .form-group select, .form-group textarea {
+        width: 100%; padding: .7rem .9rem; border: 2px solid #e9ecef;
+        border-radius: 10px; font-size: .95rem; background: #f8f9fa;
+        transition: all .2s ease; box-sizing: border-box; font-family: inherit;
+    }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+        outline: none; border-color: #667eea; background: #fff;
+        box-shadow: 0 0 0 4px rgba(102,126,234,.12);
+    }
+    .form-group textarea { resize: vertical; min-height: 100px; }
+
+    .btn-predict {
+        background: linear-gradient(135deg, #667eea, #764ba2); color: #fff;
+        border: none; padding: .85rem 2rem; border-radius: 12px;
+        font-weight: 600; font-size: 1rem; cursor: pointer;
+        transition: transform .15s, box-shadow .15s;
+        box-shadow: 0 8px 20px rgba(102,126,234,.4);
+    }
+    .btn-predict:hover { transform: translateY(-2px); box-shadow: 0 12px 26px rgba(102,126,234,.55); }
+    .btn-predict:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+
+    /* ================= DUAL RESULT DISPLAY ================= */
+    .dual-result { display: none; margin-bottom: 2rem; animation: fadeUp .5s ease-out; }
+    .dual-result.show { display: block; }
+    @keyframes fadeUp {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .dual-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem; }
+    @media (max-width: 768px) { .dual-grid { grid-template-columns: 1fr; } }
+
+    .verdict-card {
+        border-radius: 20px; padding: 2rem 1.5rem; text-align: center;
+        position: relative; transition: transform .3s, box-shadow .3s;
+        border: 3px solid;
+    }
+
+    .verdict-card.fake {
+        background: linear-gradient(135deg, #fff5f5, #ffe3e3);
+        border-color: #dc3545; opacity: .4; transform: scale(.95);
+    }
+    .verdict-card.fake.winner {
+        opacity: 1; transform: scale(1);
+        box-shadow: 0 12px 32px rgba(220,53,69,.35); border-width: 5px;
+    }
+
+    .verdict-card.genuine {
+        background: linear-gradient(135deg, #f0fff4, #d1f7dd);
+        border-color: #28a745; opacity: .4; transform: scale(.95);
+    }
+    .verdict-card.genuine.winner {
+        opacity: 1; transform: scale(1);
+        box-shadow: 0 12px 32px rgba(40,167,69,.35); border-width: 5px;
+    }
+
+    .verdict-icon { font-size: 3.5rem; margin-bottom: .75rem; }
+    .verdict-card.fake .verdict-icon { color: #dc3545; }
+    .verdict-card.genuine .verdict-icon { color: #28a745; }
+
+    .verdict-label { font-size: 2.2rem; font-weight: 900; letter-spacing: 1.5px; margin: 0 0 .25rem; line-height: 1; }
+    .verdict-card.fake .verdict-label { color: #dc3545; }
+    .verdict-card.genuine .verdict-label { color: #28a745; }
+
+    .verdict-pct { font-size: 1.6rem; font-weight: 800; margin: .5rem 0 .25rem; }
+    .verdict-card.fake .verdict-pct { color: #dc3545; }
+    .verdict-card.genuine .verdict-pct { color: #28a745; }
+
+    .verdict-desc { font-size: .9rem; color: #495057; margin-top: .5rem; min-height: 40px; }
+
+    .winner-badge {
+        position: absolute; top: -14px; left: 50%; transform: translateX(-50%);
+        background: #1a1a2e; color: #fff; padding: .3rem 1rem;
+        border-radius: 999px; font-size: .75rem; font-weight: 700;
+        letter-spacing: 1px; display: none;
+    }
+    .verdict-card.winner .winner-badge { display: block; }
+
+    .verdict-bar { height: 12px; background: #e9ecef; border-radius: 999px; overflow: hidden; margin-top: 1rem; }
+    .verdict-bar-fill { height: 100%; border-radius: 999px; transition: width .8s ease-out; width: 0; }
+    .verdict-card.fake .verdict-bar-fill { background: linear-gradient(90deg, #ff6b6b, #dc3545); }
+    .verdict-card.genuine .verdict-bar-fill { background: linear-gradient(90deg, #51cf66, #28a745); }
+
+    /* Final summary banner */
+    .final-banner { text-align: center; padding: 1.5rem; border-radius: 16px; margin-bottom: 1.5rem; font-size: 1.15rem; font-weight: 600; }
+    .final-banner.fake { background: #ffe3e3; color: #c92a2a; border: 2px solid #dc3545; }
+    .final-banner.genuine { background: #d3f9d8; color: #2b8a3e; border: 2px solid #28a745; }
+
+    /* Model breakdown */
+    .model-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-top: 1rem; }
+    .model-box {
+        background: #fff; border-radius: 12px; padding: 1rem;
+        box-shadow: 0 4px 14px rgba(0,0,0,.06);
+        text-align: center; border-top: 4px solid #ccc;
+    }
+    .model-box.fake { border-top-color: #dc3545; }
+    .model-box.genuine { border-top-color: #28a745; }
+    .model-box h6 { font-size: .75rem; text-transform: uppercase; letter-spacing: .5px; color: #6c757d; margin-bottom: .5rem; }
+    .model-box .pred { font-size: 1.15rem; font-weight: 800; }
+    .model-box.fake .pred { color: #dc3545; }
+    .model-box.genuine .pred { color: #28a745; }
+    .model-box .conf { font-size: .82rem; color: #6c757d; margin-top: .25rem; }
+
+    #resultChart { margin-top: 1rem; }
+
+    /* Batch */
+    .upload-section { background: #fff; border-radius: 20px; box-shadow: 0 12px 40px rgba(0,0,0,.08); padding: 2rem; margin-top: 2rem; }
+    .upload-section h4 { font-weight: 700; color: #1a1a2e; margin-bottom: .5rem; }
+    .upload-section .hint { color: #6c757d; font-size: .9rem; margin-bottom: 1.5rem; }
+    .file-input-wrap {
+        border: 2px dashed #c7d2fe; border-radius: 12px;
+        padding: 1.5rem; text-align: center; background: #f8faff;
+        transition: all .2s; cursor: pointer;
+    }
+    .file-input-wrap:hover { border-color: #667eea; background: #eef2ff; }
+    .file-input-wrap input[type="file"] { display: none; }
+    .file-input-wrap label { cursor: pointer; color: #667eea; font-weight: 600; margin: 0; }
+    .file-input-wrap i { font-size: 2rem; color: #667eea; display: block; margin-bottom: .5rem; }
+
+    .batch-summary { display: none; margin-top: 1.5rem; gap: 1rem; }
+    .batch-summary.show { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+    .summary-box { background: #f8f9fa; border-radius: 12px; padding: 1rem; text-align: center; }
+    .summary-box.fake { background: #fff5f5; }
+    .summary-box.genuine { background: #f0fff4; }
+    .summary-box h3 { margin: 0; font-weight: 800; font-size: 1.8rem; }
+    .summary-box.fake h3 { color: #dc3545; }
+    .summary-box.genuine h3 { color: #28a745; }
+    .summary-box p { margin: 0; font-size: .85rem; color: #6c757d; }
+
+    .batch-results { display: none; margin-top: 1.5rem; overflow-x: auto; }
+    .batch-results.show { display: block; }
+    table.results-table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+    table.results-table th { background: #f1f3f5; padding: .75rem; text-align: left; font-weight: 700; color: #495057; border-bottom: 2px solid #dee2e6; white-space: nowrap; }
+    table.results-table td { padding: .65rem .75rem; border-bottom: 1px solid #e9ecef; }
+    table.results-table tr:hover { background: #f8f9fa; }
+
+    .badge-fake, .badge-genuine, .badge-error { display: inline-block; padding: .35rem .9rem; border-radius: 999px; font-weight: 700; font-size: .82rem; letter-spacing: .5px; }
+    .badge-fake { background: #ffe3e3; color: #c92a2a; }
+    .badge-genuine { background: #d3f9d8; color: #2b8a3e; }
+    .badge-error { background: #fff3cd; color: #664d03; }
+
+    .spinner { display: inline-block; width: 18px; height: 18px; border: 3px solid rgba(255,255,255,.4); border-top-color: #fff; border-radius: 50%; animation: spin .8s linear infinite; vertical-align: middle; margin-right: .5rem; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .alert-error { background: #f8d7da; color: #842029; border: 1px solid #f5c2c7; padding: .85rem 1rem; border-radius: 10px; margin-bottom: 1rem; display: none; }
+    .alert-error.show { display: block; }
+
+    @media (max-width: 576px) {
+        .pred-header h1 { font-size: 1.8rem; }
+        .verdict-label { font-size: 1.7rem; }
+        .form-card, .upload-section { padding: 1.5rem; }
+    }
+</style>
+
+<div class="prediction-wrapper">
+    <div class="pred-header">
+        <h1><i class="fas fa-shield-virus"></i> Fake Review Detection</h1>
+        <p>Enter review details to detect if it's genuine or fake</p>
+        <span class="config-badge" id="configBadge">
+            <i class="fas fa-cog"></i> Loading config…
+        </span>
+    </div>
+
+    <!-- SINGLE PREDICTION FORM -->
+    <div class="form-card">
+        <h4><i class="fas fa-edit text-primary"></i> Single Review Analysis</h4>
+        <form id="predictForm">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="rating">Rating</label>
+                    <select id="rating" name="rating">
+                        <option value="1">1 Star — Poor</option>
+                        <option value="2">2 Stars — Fair</option>
+                        <option value="3">3 Stars — Good</option>
+                        <option value="4">4 Stars — Very Good</option>
+                        <option value="5" selected>5 Stars — Excellent</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="verifiedPurchase">Verified Purchase</label>
+                    <select id="verifiedPurchase" name="verifiedPurchase">
+                        <option value="0">No</option>
+                        <option value="1">Yes</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="helpfulVoteCount">Helpful Votes</label>
+                    <input type="number" id="helpfulVoteCount" name="helpfulVoteCount" value="0" min="0" step="1">
+                </div>
+                <div class="form-group">
+                    <label for="sentiment_score">Sentiment Score <span class="hint">(−1 → +1)</span></label>
+                    <input type="number" id="sentiment_score" name="sentiment_score" value="0.5" min="-1" max="1" step="0.01">
+                </div>
+                <div class="form-group full-width">
+                    <label for="review_text">Review Text <span class="hint">(optional — auto-fills length, word count &amp; sentiment)</span></label>
+                    <textarea id="review_text" name="review_text" placeholder="Paste review text here..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="review_length">Review Length (characters)</label>
+                    <input type="number" id="review_length" name="review_length" value="100" min="0" step="1">
+                </div>
+                <div class="form-group">
+                    <label for="word_count">Word Count</label>
+                    <input type="number" id="word_count" name="word_count" value="20" min="0" step="1">
+                </div>
+            </div>
+
+            <div class="alert-error" id="formError"></div>
+
+            <div style="text-align:center; margin-top:1.75rem;">
+                <button type="submit" class="btn-predict" id="predictBtn">
+                    <i class="fas fa-brain"></i> Detect Fake Review
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- ============ DUAL RESULT DISPLAY ============ -->
+    <div class="dual-result" id="dualResult">
+        <div class="final-banner" id="finalBanner"></div>
+
+        <div class="dual-grid">
+            <!-- FAKE card -->
+            <div class="verdict-card fake" id="fakeCard">
+                <span class="winner-badge">✓ PREDICTED</span>
+                <div class="verdict-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                <h2 class="verdict-label">FAKE</h2>
+                <div class="verdict-pct" id="fakePctCard">0%</div>
+                <p class="verdict-desc">Suspicious patterns detected — likely a fraudulent review.</p>
+                <div class="verdict-bar">
+                    <div class="verdict-bar-fill" id="fakeBarFill"></div>
+                </div>
+            </div>
+
+            <!-- GENUINE card -->
+            <div class="verdict-card genuine" id="genuineCard">
+                <span class="winner-badge">✓ PREDICTED</span>
+                <div class="verdict-icon"><i class="fas fa-check-circle"></i></div>
+                <h2 class="verdict-label">GENUINE</h2>
+                <div class="verdict-pct" id="genuinePctCard">0%</div>
+                <p class="verdict-desc">Appears to be an authentic, trustworthy review.</p>
+                <div class="verdict-bar">
+                    <div class="verdict-bar-fill" id="genuineBarFill"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="model-grid" id="modelGrid"></div>
+        <div id="resultChart"></div>
+    </div>
+
+    <!-- BATCH UPLOAD -->
+    <div class="upload-section">
+        <h4><i class="fas fa-file-upload text-success"></i> Batch Prediction</h4>
+        <p class="hint">
+            Upload a CSV or Excel file to predict many reviews at once.<br>
+            <strong>Required columns:</strong>
+            <code>rating</code>, <code>sentiment_score</code>,
+            <code>helpfulVoteCount</code> (or <code>helpful_votes</code>),
+            <code>verifiedPurchase</code> (or <code>verified_purchase</code>),
+            <code>review_length</code>, <code>word_count</code>
+        </p>
+
+        <div class="file-input-wrap" id="fileInputWrap">
+            <input type="file" id="batchFile" accept=".csv,.xlsx,.xls">
+            <label for="batchFile">
+                <i class="fas fa-cloud-upload-alt"></i>
+                Click to choose file or drag it here
+                <div style="font-size:.85rem; color:#6c757d; font-weight:400; margin-top:.25rem;" id="fileName">
+                    No file chosen
+                </div>
+            </label>
+        </div>
+
+        <div style="text-align:center; margin-top:1rem;">
+            <button class="btn-predict" id="uploadBtn" disabled>
+                <i class="fas fa-upload"></i> Analyze Batch
+            </button>
+        </div>
+
+        <div class="alert-error" id="uploadError"></div>
+
+        <div class="batch-summary" id="batchSummary">
+            <div class="summary-box">
+                <h3 id="totalCount">0</h3>
+                <p>Total Reviews</p>
+            </div>
+            <div class="summary-box fake">
+                <h3 id="fakeCount">0</h3>
+                <p>FAKE Detected</p>
+            </div>
+            <div class="summary-box genuine">
+                <h3 id="genuineCount">0</h3>
+                <p>GENUINE</p>
+            </div>
+            <div class="summary-box">
+                <h3 id="fakePct">0%</h3>
+                <p>Fake Rate</p>
+            </div>
+        </div>
+
+        <div class="batch-results" id="batchResults">
+            <table class="results-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Rating</th>
+                        <th>Sentiment</th>
+                        <th>Verdict</th>
+                        <th>Confidence</th>
+                        <th>Fake Prob.</th>
+                        <th>RF</th>
+                        <th>XGB</th>
+                        <th>LR</th>
+                    </tr>
+                </thead>
+                <tbody id="resultsBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+    // Load Config
+    fetch('/api/config')
+        .then(r => r.json())
+        .then(cfg => {
+            document.getElementById('configBadge').innerHTML =
+                `<i class="fas fa-check-circle"></i> FAKE=${cfg.fake_label} · GENUINE=${cfg.genuine_label} · ${cfg.source}`;
+        })
+        .catch(() => {
+            document.getElementById('configBadge').textContent = 'Config unavailable';
+        });
+
+    const form         = document.getElementById('predictForm');
+    const predictBtn   = document.getElementById('predictBtn');
+    const dualResult   = document.getElementById('dualResult');
+    const formError    = document.getElementById('formError');
+    const reviewText   = document.getElementById('review_text');
+    const reviewLength = document.getElementById('review_length');
+    const wordCount    = document.getElementById('word_count');
+    const sentimentFld = document.getElementById('sentiment_score');
+
+    // Auto-fill from text
+    let debounceTimer;
+    reviewText.addEventListener('input', () => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+            const txt = reviewText.value;
+            if (!txt.trim()) return;
+            fetch('/api/analyze_text', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({review_text: txt})
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    reviewLength.value = data.features.review_length;
+                    wordCount.value    = data.features.word_count;
+                    sentimentFld.value = data.features.sentiment_score.toFixed(2);
+                }
+            })
+            .catch(() => {});
+        }, 400);
+    });
+
+    // Submit Prediction
+    form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        formError.classList.remove('show');
+        predictBtn.disabled = true;
+        predictBtn.innerHTML = '<span class="spinner"></span>Analyzing…';
+
+        const payload = {
+            rating:            parseFloat(document.getElementById('rating').value),
+            verifiedPurchase:  parseFloat(document.getElementById('verifiedPurchase').value),
+            helpfulVoteCount:  parseFloat(document.getElementById('helpfulVoteCount').value),
+            sentiment_score:   parseFloat(sentimentFld.value),
+            review_length:     parseFloat(reviewLength.value),
+            word_count:        parseFloat(wordCount.value),
+            review_text:       reviewText.value  // <--- CRITICAL: Sends text to backend
+        };
+
+        fetch('/api/predict', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (!data.success) throw new Error(data.error || 'Prediction failed');
+            renderDualResult(data);
+        })
+        .catch(err => {
+            formError.textContent = err.message;
+            formError.classList.add('show');
+        })
+        .finally(() => {
+            predictBtn.disabled = false;
+            predictBtn.innerHTML = '<i class="fas fa-brain"></i> Detect Fake Review';
+        });
+    });
+
+    function renderDualResult(data) {
+        const isFake  = data.prediction === 'FAKE';
+        const fakePct = data.fake_probability;
+        const genPct  = data.genuine_probability;
+
+        dualResult.classList.add('show');
+
+        const fakeCard    = document.getElementById('fakeCard');
+        const genuineCard = document.getElementById('genuineCard');
+        fakeCard.classList.toggle('winner', isFake);
+        genuineCard.classList.toggle('winner', !isFake);
+
+        document.getElementById('fakePctCard').textContent    = fakePct.toFixed(2) + '%';
+        document.getElementById('genuinePctCard').textContent = genPct.toFixed(2) + '%';
+
+        const fakeBar    = document.getElementById('fakeBarFill');
+        const genuineBar = document.getElementById('genuineBarFill');
+        fakeBar.style.width = '0%';
+        genuineBar.style.width = '0%';
+        setTimeout(() => {
+            fakeBar.style.width    = fakePct + '%';
+            genuineBar.style.width = genPct + '%';
+        }, 80);
+
+        const banner = document.getElementById('finalBanner');
+        banner.classList.remove('fake', 'genuine');
+        if (isFake) {
+            banner.classList.add('fake');
+            banner.innerHTML = `<i class="fas fa-exclamation-triangle me-2"></i>
+                Final Verdict: <strong>FAKE</strong> — ${data.confidence}% confidence
+                (${fakePct.toFixed(2)}% fake vs ${genPct.toFixed(2)}% genuine)`;
+        } else {
+            banner.classList.add('genuine');
+            banner.innerHTML = `<i class="fas fa-check-circle me-2"></i>
+                Final Verdict: <strong>GENUINE</strong> — ${data.confidence}% confidence
+                (${genPct.toFixed(2)}% genuine vs ${fakePct.toFixed(2)}% fake)`;
+        }
+
+        const grid = document.getElementById('modelGrid');
+        grid.innerHTML = '';
+        const pretty = {
+            random_forest: 'Random Forest',
+            xgboost: 'XGBoost',
+            logistic_regression: 'Logistic Regression'
+        };
+        for (const [key, block] of Object.entries(data.model_predictions)) {
+            const cls = block.prediction === 'FAKE' ? 'fake' : 'genuine';
+            grid.innerHTML += `
+                <div class="model-box ${cls}">
+                    <h6>${pretty[key]}</h6>
+                    <div class="pred">${block.prediction}</div>
+                    <div class="conf">${block.confidence}% confident</div>
+                </div>`;
+        }
+
+        if (data.visualization) {
+            const fig = JSON.parse(data.visualization);
+            Plotly.react('resultChart', fig.data, fig.layout, {responsive: true});
+        }
+
+        dualResult.scrollIntoView({behavior: 'smooth', block: 'start'});
+    }
+
+    // Batch Upload
+    const batchFile    = document.getElementById('batchFile');
+    const fileName     = document.getElementById('fileName');
+    const uploadBtn    = document.getElementById('uploadBtn');
+    const uploadError  = document.getElementById('uploadError');
+    const batchSummary = document.getElementById('batchSummary');
+    const batchResults = document.getElementById('batchResults');
+    const resultsBody  = document.getElementById('resultsBody');
+
+    batchFile.addEventListener('change', () => {
+        if (batchFile.files.length > 0) {
+            fileName.textContent = batchFile.files[0].name;
+            uploadBtn.disabled = false;
+        } else {
+            fileName.textContent = 'No file chosen';
+            uploadBtn.disabled = true;
+        }
+    });
+
+    uploadBtn.addEventListener('click', () => {
+        if (!batchFile.files.length) return;
+        uploadError.classList.remove('show');
+        uploadBtn.disabled = true;
+        uploadBtn.innerHTML = '<span class="spinner"></span>Processing…';
+
+        const fd = new FormData();
+        fd.append('file', batchFile.files[0]);
+
+        fetch('/api/upload_excel', { method: 'POST', body: fd })
+            .then(r => r.json())
+            .then(data => {
+                if (!data.success) throw new Error(data.error || 'Upload failed');
+                renderBatch(data);
+            })
+            .catch(err => {
+                uploadError.textContent = err.message;
+                uploadError.classList.add('show');
+            })
+            .finally(() => {
+                uploadBtn.disabled = false;
+                uploadBtn.innerHTML = '<i class="fas fa-upload"></i> Analyze Batch';
+            });
+    });
+
+    function renderBatch(data) {
+        document.getElementById('totalCount').textContent   = data.total;
+        document.getElementById('fakeCount').textContent    = data.fake_count;
+        document.getElementById('genuineCount').textContent = data.genuine_count;
+        document.getElementById('fakePct').textContent =
+            data.total ? ((data.fake_count / data.total) * 100).toFixed(1) + '%' : '0%';
+        batchSummary.classList.add('show');
+
+        resultsBody.innerHTML = '';
+        data.results.forEach(r => {
+            const isFake = r.prediction === 'FAKE';
+            const isErr  = r.prediction === 'ERROR';
+            const badge  = isErr ? 'badge-error' : (isFake ? 'badge-fake' : 'badge-genuine');
+            const mp  = r.model_predictions || {};
+            const rf  = mp.random_forest       ? mp.random_forest.prediction       : '—';
+            const xgb = mp.xgboost             ? mp.xgboost.prediction             : '—';
+            const lr  = mp.logistic_regression ? mp.logistic_regression.prediction : '—';
+
+            resultsBody.innerHTML += `
+                <tr>
+                    <td>${r.row}</td>
+                    <td>${r.rating != null ? r.rating : '—'}</td>
+                    <td>${r.sentiment_score != null ? r.sentiment_score : '—'}</td>
+                    <td><span class="${badge}">${r.prediction}</span></td>
+                    <td>${r.confidence}%</td>
+                    <td>${r.fake_probability}%</td>
+                    <td>${rf}</td>
+                    <td>${xgb}</td>
+                    <td>${lr}</td>
+                </tr>`;
+        });
+
+        batchResults.classList.add('show');
+        batchSummary.scrollIntoView({behavior: 'smooth', block: 'start'});
+    }
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero-section">
+    <div class="container">
+        <div class="row align-items-center min-vh-100">
+            <div class="col-lg-6">
+                <div class="hero-content" data-aos="fade-right">
+                    <h1 class="display-3 fw-bold mb-4">
+                        Detect <span class="text-gradient">Fake Reviews</span> with AI
+                    </h1>
+                    <p class="lead mb-4">
+                        Protect your e-commerce platform from fraudulent reviews using cutting-edge machine learning algorithms. 
+                        Our system achieves <span class="badge bg-success">99.6% accuracy</span> in detecting fake reviews.
+                    </p>
+                    <div class="d-flex gap-3 mb-4">
+                        <a href="{{ url_for('prediction_page') }}" class="btn btn-primary btn-lg">
+                            <i class="fas fa-brain me-2"></i>Try Detection
+                        </a>
+                        <a href="{{ url_for('visualization_page') }}" class="btn btn-outline-primary btn-lg">
+                            <i class="fas fa-chart-line me-2"></i>View Analytics
+                        </a>
+                    </div>
+                    <div class="stats-row mt-5">
+                        <div class="stat-item">
+                            <h3 class="fw-bold text-primary mb-0">99.6%</h3>
+                            <p class="text-muted small">Accuracy</p>
+                        </div>
+                        <div class="stat-item">
+                            <h3 class="fw-bold text-success mb-0">3</h3>
+                            <p class="text-muted small">ML Models</p>
+                        </div>
+                        <div class="stat-item">
+                            <h3 class="fw-bold text-warning mb-0">6</h3>
+                            <p class="text-muted small">Features</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="hero-image" data-aos="fade-left">
+                    <div class="floating-card">
+                        <img class="img-fluid" src="https://cdn.prod.website-files.com/6579cdf1c0fe0d37fe87b60d/65fc06f47847dd9a279556e6_Review-Detection.png" >
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Features Section -->
+<section class="features-section py-5 bg-light">
+    <div class="container">
+        <div class="text-center mb-5">
+            <h2 class="display-5 fw-bold mb-3">Why Choose FakeReviewGuard?</h2>
+            <p class="lead text-muted">Advanced AI-powered detection with industry-leading accuracy</p>
+        </div>
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <div class="feature-icon bg-primary">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <h4 class="mt-3">AI-Powered Detection</h4>
+                    <p class="text-muted">Utilizes ensemble learning with Random Forest, XGBoost, and Logistic Regression for maximum accuracy.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <div class="feature-icon bg-success">
+                        <i class="fas fa-bolt"></i>
+                    </div>
+                    <h4 class="mt-3">Real-time Analysis</h4>
+                    <p class="text-muted">Get instant predictions with confidence scores and detailed breakdown from multiple models.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <div class="feature-icon bg-warning">
+                        <i class="fas fa-chart-bar"></i>
+                    </div>
+                    <h4 class="mt-3">Interactive Visualizations</h4>
+                    <p class="text-muted">Explore model performance, feature importance, and prediction results through interactive charts.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <div class="feature-icon bg-info">
+                        <i class="fas fa-search"></i>
+                    </div>
+                    <h4 class="mt-3">Multi-Feature Analysis</h4>
+                    <p class="text-muted">Analyzes sentiment score, rating consistency, verified purchase status, and review patterns.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <div class="feature-icon bg-danger">
+                        <i class="fas fa-shield-virus"></i>
+                    </div>
+                    <h4 class="mt-3">Fraud Pattern Detection</h4>
+                    <p class="text-muted">Identifies suspicious patterns like sentiment-rating mismatch and unverified extreme opinions.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <div class="feature-icon bg-secondary">
+                        <i class="fas fa-code"></i>
+                    </div>
+                    <h4 class="mt-3">Easy Integration</h4>
+                    <p class="text-muted">RESTful API for seamless integration into your existing e-commerce platform or marketplace.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- How It Works Section -->
+<section class="how-it-works-section py-5">
+    <div class="container">
+        <div class="text-center mb-5">
+            <h2 class="display-5 fw-bold mb-3">How It Works</h2>
+            <p class="lead text-muted">Simple 3-step process to detect fake reviews</p>
+        </div>
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="step-card">
+                    <div class="step-number">1</div>
+                    <h4 class="mt-3">Input Review Data</h4>
+                    <p class="text-muted">Enter review details including rating, sentiment, verification status, and review content.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="step-card">
+                    <div class="step-number">2</div>
+                    <h4 class="mt-3">AI Analysis</h4>
+                    <p class="text-muted">Our ensemble of ML models analyzes patterns and inconsistencies in real-time.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="step-card">
+                    <div class="step-number">3</div>
+                    <h4 class="mt-3">Get Results</h4>
+                    <p class="text-muted">Receive instant prediction with confidence score and visual breakdown.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA Section -->
+<section class="cta-section py-5 bg-gradient-primary text-white">
+    <div class="container text-center">
+        <h2 class="display-5 fw-bold mb-3">Ready to Detect Fake Reviews?</h2>
+        <p class="lead mb-4">Start protecting your platform from fraudulent reviews today</p>
+        <a href="{{ url_for('prediction_page') }}" class="btn btn-light btn-lg">
+            <i class="fas fa-rocket me-2"></i>Get Started Now
+        </a>
+    </div>
+</section>
+{% endblock %}

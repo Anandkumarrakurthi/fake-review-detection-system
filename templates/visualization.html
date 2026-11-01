@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="visualization-section py-5">
+    <div class="container">
+        <div class="section-header text-center mb-5">
+            <h2 class="display-5 fw-bold mb-3">
+                <i class="fas fa-chart-line text-primary me-2"></i>
+                Model Performance Dashboard
+            </h2>
+            <p class="lead text-muted">Interactive visualizations of model accuracy and feature importance</p>
+        </div>
+
+        <!-- Model Comparison Chart -->
+        <div class="card shadow-lg border-0 mb-4">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0"><i class="fas fa-trophy me-2"></i>Model Performance Comparison</h4>
+            </div>
+            <div class="card-body p-4">
+                <div id="modelComparisonChart"></div>
+                <div class="alert alert-info mt-3">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Best Model:</strong> XGBoost achieved the highest F1-Score with perfect accuracy on the test set.
+                </div>
+            </div>
+        </div>
+
+        <!-- Performance Metrics Gauges -->
+        <div class="card shadow-lg border-0 mb-4">
+            <div class="card-header bg-success text-white">
+                <h4 class="mb-0"><i class="fas fa-tachometer-alt me-2"></i>Performance Metrics (Best Model)</h4>
+            </div>
+            <div class="card-body p-4">
+                <div class="row g-4">
+                    {% for chart in gauge_charts %}
+                    <div class="col-md-4">
+                        <div id="gauge{{ loop.index }}" class="gauge-chart"></div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Feature Importance Charts -->
+        <div class="row g-4 mb-4">
+            <div class="col-lg-6">
+                <div class="card shadow-lg border-0 h-100">
+                    <div class="card-header" style="background: linear-gradient(135deg, #3498db 0%, #2c3e50 100%); color: white;">
+                        <h5 class="mb-0"><i class="fas fa-tree me-2"></i>Random Forest Feature Importance</h5>
+                    </div>
+                    <div class="card-body p-4">
+                        <div id="rfImportanceChart"></div>
+                        <div class="alert alert-light mt-3 border">
+                            <small>
+                                <strong>Top Features:</strong> Sentiment score and word count are the most influential features for Random Forest classification.
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="card shadow-lg border-0 h-100">
+                    <div class="card-header" style="background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%); color: white;">
+                        <h5 class="mb-0"><i class="fas fa-bolt me-2"></i>XGBoost Feature Importance</h5>
+                    </div>
+                    <div class="card-body p-4">
+                        <div id="xgbImportanceChart"></div>
+                        <div class="alert alert-light mt-3 border">
+                            <small>
+                                <strong>Top Features:</strong> XGBoost heavily relies on sentiment score (59.3%) for making predictions.
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Feature Descriptions -->
+        <div class="card shadow-lg border-0 mb-4">
+            <div class="card-header bg-dark text-white">
+                <h4 class="mb-0"><i class="fas fa-list-ul me-2"></i>Feature Descriptions</h4>
+            </div>
+            <div class="card-body p-4">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="feature-desc-card">
+                            <h6 class="text-primary"><i class="fas fa-star me-2"></i>Rating</h6>
+                            <p class="small text-muted mb-0">Product rating given by the reviewer (1-5 stars)</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="feature-desc-card">
+                            <h6 class="text-primary"><i class="fas fa-smile me-2"></i>Sentiment Score</h6>
+                            <p class="small text-muted mb-0">Sentiment polarity ranging from -1 (negative) to +1 (positive)</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="feature-desc-card">
+                            <h6 class="text-primary"><i class="fas fa-thumbs-up me-2"></i>Helpful Vote Count</h6>
+                            <p class="small text-muted mb-0">Number of users who found the review helpful</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="feature-desc-card">
+                            <h6 class="text-primary"><i class="fas fa-check-circle me-2"></i>Verified Purchase</h6>
+                            <p class="small text-muted mb-0">Whether the reviewer actually purchased the product (1=Yes, 0=No)</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="feature-desc-card">
+                            <h6 class="text-primary"><i class="fas fa-ruler me-2"></i>Review Length</h6>
+                            <p class="small text-muted mb-0">Total character count of the review text</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="feature-desc-card">
+                            <h6 class="text-primary"><i class="fas fa-font me-2"></i>Word Count</h6>
+                            <p class="small text-muted mb-0">Total number of words in the review</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Detection Patterns -->
+        <div class="card shadow-lg border-0">
+            <div class="card-header bg-warning text-dark">
+                <h4 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Fake Review Detection Patterns</h4>
+            </div>
+            <div class="card-body p-4">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <div class="pattern-card border-start border-danger border-4">
+                            <h6 class="text-danger fw-bold">Sentiment-Rating Mismatch</h6>
+                            <p class="small text-muted mb-0">High positive sentiment with low rating or vice versa indicates potential fake review</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="pattern-card border-start border-warning border-4">
+                            <h6 class="text-warning fw-bold">Unverified Extremes</h6>
+                            <p class="small text-muted mb-0">Unverified purchases with extreme ratings (1 or 5 stars) are suspicious</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="pattern-card border-start border-info border-4">
+                            <h6 class="text-info fw-bold">Length Anomalies</h6>
+                            <p class="small text-muted mb-0">Unusually short or excessively long reviews may indicate spam</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="pattern-card border-start border-success border-4">
+                            <h6 class="text-success fw-bold">Zero Engagement</h6>
+                            <p class="small text-muted mb-0">Lengthy reviews with zero helpful votes suggest low credibility</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="pattern-card border-start border-primary border-4">
+                            <h6 class="text-primary fw-bold">Moderate-Extreme Gap</h6>
+                            <p class="small text-muted mb-0">Moderate sentiment with extreme ratings shows inconsistency</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="pattern-card border-start border-secondary border-4">
+                            <h6 class="text-secondary fw-bold">Pattern Combination</h6>
+                            <p class="small text-muted mb-0">Multiple suspicious patterns combined trigger fake classification</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Render model comparison chart
+const modelComparisonData = {{ model_comparison_chart|safe }};
+Plotly.newPlot('modelComparisonChart', modelComparisonData.data, modelComparisonData.layout, {responsive: true});
+
+// Render Random Forest importance chart
+const rfImportanceData = {{ rf_importance_chart|safe }};
+Plotly.newPlot('rfImportanceChart', rfImportanceData.data, rfImportanceData.layout, {responsive: true});
+
+// Render XGBoost importance chart
+const xgbImportanceData = {{ xgb_importance_chart|safe }};
+Plotly.newPlot('xgbImportanceChart', xgbImportanceData.data, xgbImportanceData.layout, {responsive: true});
+
+// Render gauge charts
+{% for chart in gauge_charts %}
+const gaugeData{{ loop.index }} = {{ chart|safe }};
+Plotly.newPlot('gauge{{ loop.index }}', gaugeData{{ loop.index }}.data, gaugeData{{ loop.index }}.layout, {responsive: true});
+{% endfor %}
+
+// Make charts responsive on window resize
+window.addEventListener('resize', function() {
+    Plotly.Plots.resize('modelComparisonChart');
+    Plotly.Plots.resize('rfImportanceChart');
+    Plotly.Plots.resize('xgbImportanceChart');
+    {% for chart in gauge_charts %}
+    Plotly.Plots.resize('gauge{{ loop.index }}');
+    {% endfor %}
+});
+</script>
+{% endblock %}
