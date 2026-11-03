@@ -125,8 +125,7 @@ Ensure all `.pkl` files are present in the `models/` directory:
 python app.py
 ```
 
-5. **Access the application**
-Open your browser and navigate to: `http://localhost:5000`
+5. **Access the application}:L}_<'[0[ tevfcOpen your browser and navigate to: `http://localhost:5000`
 
 ## 💻 Usage
 
