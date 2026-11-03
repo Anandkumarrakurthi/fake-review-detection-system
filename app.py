@@ -7,7 +7,6 @@ import json
 import plotly
 import plotly.express as px
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 import os
 import sqlite3
 from datetime import timedelta
@@ -53,6 +52,8 @@ def login_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
         if 'user_id' not in session:
+            if request.path.startswith('/api/'):
+                return jsonify({'success': False, 'error': 'Session expired. Please log in again.'}), 401
             flash('Please log in to access this page.', 'warning')
             return redirect(url_for('login', next=request.path))
         return f(*args, **kwargs)
@@ -88,12 +89,9 @@ FEATURE_NAMES = ['rating', 'sentiment_score', 'helpfulVoteCount',
 #  TEXT & RULE-BASED PREDICTION LOGIC
 # ============================================================
 def analyze_text_for_fake(text):
-    """Analyzes the text to see if it looks like a bot/fake review."""
     if not text: return False, 0.0
-    
     text_lower = text.lower()
     
-    # 1. Check for obvious bot phrases
     fake_phrases = [
         "best product ever", "worst product ever", "waste of money", 
         "do not buy", "buy it now", "amazing quality", "outstanding product",
@@ -101,44 +99,33 @@ def analyze_text_for_fake(text):
         "horrible product", "highly recommend"
     ]
     
-    # If short text + bot phrases = Fake
     if len(text) < 80 and any(phrase in text_lower for phrase in fake_phrases):
         return True, 0.98  
-        
-    # Excessive exclamation marks = Fake
     if text.count('!') > 3:
         return True, 0.95
-        
-    # 2. Check for genuine review patterns (long, specific text)
     if len(text.split()) > 20 and len(text) > 100:
-        # It's a long review, likely genuine if it has normal punctuation
         return False, 0.90
-
     return False, 0.0
 
-
-def predict_logic(rating, sentiment, votes, verified, length, words, text):
-    """
-    Applies text analysis first, then strict rules, then falls back to ML models.
-    """
-    # 1. FIRST: Check if the TEXT looks fake
+def predict_logic(rating, sentiment, votes, verified, length, words, text=''):
+    # 1. Text analysis
     text_is_fake, text_confidence = analyze_text_for_fake(text)
     if text_is_fake:
         return True, text_confidence
 
-    # 2. Check Rating/Sentiment Mismatch (e.g. 5 stars but negative text)
+    # 2. Rating/Sentiment Mismatch
     if (rating == 1 and sentiment > 0.5) or (rating == 5 and sentiment < -0.5):
         return True, 0.95 
 
-    # 3. Check for long, detailed text with verified purchase (Genuine)
+    # 3. Long detailed text with verified purchase
     if len(text) > 100 and verified == 1:
         return False, 0.92
 
-    # 4. Unverified and 0 votes (Fake)
+    # 4. Unverified and 0 votes
     if verified == 0 and votes == 0:
         return True, 0.85
 
-    # 5. FALLBACK: Let the ML models decide based on the numbers
+    # 5. ML Models Fallback
     features = [rating, sentiment, votes, verified, length, words]
     scaled = scaler.transform([features])
     
@@ -225,7 +212,7 @@ def visualization_page():
 def about_page(): return render_template('about.html')
 
 # ============================================================
-#  API
+#  API ENDPOINTS
 # ============================================================
 @app.route('/api/config', methods=['GET'])
 def api_config():
@@ -248,8 +235,7 @@ def predict():
         
         fake_pct = avg_prob * 100.0
         if not is_fake:
-            fake_pct = 100.0 - fake_pct # Flip if genuine
-
+            fake_pct = 100.0 - fake_pct 
         conf_pct = fake_pct if is_fake else (100.0 - fake_pct)
         final_verdict = 'FAKE' if is_fake else 'GENUINE'
 
@@ -285,6 +271,135 @@ def analyze_text():
         'word_count': len(text.split()),
         'sentiment_score': score
     }})
+
+# ============================================================
+#  BATCH UPLOAD ENDPOINT (UPDATED)
+# ============================================================
+@app.route('/api/upload_excel', methods=['POST'])
+@login_required
+def upload_excel():
+    if 'file' not in request.files:
+        return jsonify({'success': False, 'error': 'No file part in request'}), 400
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'success': False, 'error': 'No file selected'}), 400
+
+    filename = secure_filename(file.filename)
+    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    file.save(filepath)
+
+    try:
+        if filename.lower().endswith('.csv'):
+            df = pd.read_csv(filepath)
+        elif filename.lower().endswith(('.xlsx', '.xls')):
+            try:
+                df = pd.read_excel(filepath)
+            except ImportError as e:
+                # Catch the missing openpyxl/xlrd dependency gracefully
+                if 'openpyxl' in str(e).lower() or 'xlrd' in str(e).lower():
+                    return jsonify({
+                        'success': False, 
+                        'error': 'Missing dependency! Please run: pip install openpyxl in your terminal, then restart the app.'
+                    }), 400
+                raise e
+        else:
+            return jsonify({'success': False, 'error': 'Unsupported file type. Use .xlsx/.xls/.csv'}), 400
+
+        # Normalize column names
+        alias_map = {
+            'rating': 'rating', 
+            'sentiment_score': 'sentiment_score',
+            'sentimentscore': 'sentiment_score',
+            'helpful_votes': 'helpfulVoteCount', 
+            'helpfulvotes': 'helpfulVoteCount',
+            'helpfulvotecount': 'helpfulVoteCount',
+            'verified_purchase': 'verifiedPurchase', 
+            'verifiedpurchase': 'verifiedPurchase',
+            'review_length': 'review_length', 
+            'reviewlength': 'review_length',
+            'word_count': 'word_count', 
+            'wordcount': 'word_count',
+            'review_text': 'review_text',
+            'text': 'review_text'
+        }
+        df.columns = [alias_map.get(str(c).lower().strip(), str(c).lower().strip()) for c in df.columns]
+
+        required = ['rating', 'sentiment_score', 'helpfulVoteCount', 'verifiedPurchase', 'review_length', 'word_count']
+        missing = [c for c in required if c not in df.columns]
+        if missing:
+            return jsonify({'success': False, 'error': f'Missing columns: {", ".join(missing)}'}), 400
+
+        results = []
+        for idx, row in df.iterrows():
+            try:
+                rating = float(row['rating'])
+                sentiment = float(row['sentiment_score'])
+                votes = float(row['helpfulVoteCount'])
+                verified = float(row['verifiedPurchase'])
+                length = float(row['review_length'])
+                words = float(row['word_count'])
+                text = str(row.get('review_text', '')) if 'review_text' in row and pd.notna(row['review_text']) else ''
+            except (ValueError, TypeError) as ve:
+                results.append({
+                    'row': int(idx) + 1,
+                    'rating': row.get('rating', ''),
+                    'sentiment_score': row.get('sentiment_score', ''),
+                    'prediction': 'ERROR',
+                    'confidence': 0,
+                    'fake_probability': 0,
+                    'model_predictions': {
+                        'random_forest': {'prediction': 'N/A'},
+                        'xgboost': {'prediction': 'N/A'},
+                        'logistic_regression': {'prediction': 'N/A'}
+                    },
+                    'error': str(ve)
+                })
+                continue
+
+            is_fake, avg_prob = predict_logic(rating, sentiment, votes, verified, length, words, text)
+            
+            fake_pct = avg_prob * 100.0
+            if not is_fake:
+                fake_pct = 100.0 - fake_pct
+            conf_pct = fake_pct if is_fake else (100.0 - fake_pct)
+            final_verdict = 'FAKE' if is_fake else 'GENUINE'
+
+            results.append({
+                'row': int(idx) + 1,
+                'rating': rating,
+                'sentiment_score': sentiment,
+                'prediction': final_verdict,
+                'confidence': round(conf_pct, 2),
+                'fake_probability': round(fake_pct, 2),
+                'model_predictions': {
+                    'random_forest': {'prediction': final_verdict, 'confidence': round(conf_pct, 2)},
+                    'xgboost': {'prediction': final_verdict, 'confidence': round(conf_pct, 2)},
+                    'logistic_regression': {'prediction': final_verdict, 'confidence': round(conf_pct, 2)},
+                }
+            })
+
+        total = len(results)
+        fake_count = sum(1 for r in results if r['prediction'] == 'FAKE')
+        genuine_count = sum(1 for r in results if r['prediction'] == 'GENUINE')
+
+        return jsonify({
+            'success': True,
+            'total': total,
+            'fake_count': fake_count,
+            'genuine_count': genuine_count,
+            'results': results
+        })
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if os.path.exists(filepath):
+            try:
+                os.remove(filepath)
+            except OSError:
+                pass
 
 # ============================================================
 #  CHART CREATION
