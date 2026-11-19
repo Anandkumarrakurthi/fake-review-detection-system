@@ -526,30 +526,54 @@
         }
     });
 
-    uploadBtn.addEventListener('click', () => {
-        if (!batchFile.files.length) return;
-        uploadError.classList.remove('show');
-        uploadBtn.disabled = true;
-        uploadBtn.innerHTML = '<span class="spinner"></span>Processing…';
+   
+uploadBtn.addEventListener('click', async () => {
+    if (!batchFile.files.length) return;
 
-        const fd = new FormData();
-        fd.append('file', batchFile.files[0]);
+    uploadError.classList.remove('show');
+    uploadBtn.disabled = true;
+    uploadBtn.innerHTML = '<span class="spinner"></span>Processing…';
 
-        fetch('/api/upload_excel', { method: 'POST', body: fd })
-            .then(r => r.json())
-            .then(data => {
-                if (!data.success) throw new Error(data.error || 'Upload failed');
-                renderBatch(data);
-            })
-            .catch(err => {
-                uploadError.textContent = err.message;
-                uploadError.classList.add('show');
-            })
-            .finally(() => {
-                uploadBtn.disabled = false;
-                uploadBtn.innerHTML = '<i class="fas fa-upload"></i> Analyze Batch';
-            });
-    });
+    const fd = new FormData();
+    fd.append('file', batchFile.files[0]);
+
+    try {
+        const response = await fetch('/api/upload_excel', {
+            method: 'POST',
+            body: fd
+        });
+
+        // Read the server response safely
+        const responseText = await response.text();
+
+        let data;
+
+        try {
+            data = JSON.parse(responseText);
+        } catch (error) {
+            console.error('Invalid server response:', responseText);
+            throw new Error(
+                `Server returned invalid response (HTTP ${response.status}). Check Render logs.`
+            );
+        }
+
+        if (!response.ok || !data.success) {
+            throw new Error(data.error || `Upload failed (HTTP ${response.status})`);
+        }
+
+        renderBatch(data);
+
+    } catch (err) {
+        console.error('Excel upload error:', err);
+        uploadError.textContent = err.message;
+        uploadError.classList.add('show');
+
+    } finally {
+        uploadBtn.disabled = false;
+        uploadBtn.innerHTML = '<i class="fas fa-upload"></i> Analyze Batch';
+    }
+});
+
 
     function renderBatch(data) {
         document.getElementById('totalCount').textContent   = data.total;
