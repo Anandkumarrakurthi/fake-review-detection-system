@@ -275,62 +275,120 @@ def analyze_text():
 # ============================================================
 #  BATCH UPLOAD ENDPOINT (UPDATED)
 # ============================================================
+
 @app.route('/api/upload_excel', methods=['POST'])
 @login_required
 def upload_excel():
-    if 'file' not in request.files:
-        return jsonify({'success': False, 'error': 'No file part in request'}), 400
-    file = request.files['file']
-    if file.filename == '':
-        return jsonify({'success': False, 'error': 'No file selected'}), 400
-
-    filename = secure_filename(file.filename)
-    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-    file.save(filepath)
+    filepath = None
 
     try:
+        if 'file' not in request.files:
+            return jsonify({
+                'success': False,
+                'error': 'No file part in request'
+            }), 400
+
+        file = request.files['file']
+
+        if file.filename == '':
+            return jsonify({
+                'success': False,
+                'error': 'No file selected'
+            }), 400
+
+        filename = secure_filename(file.filename)
+
+        if not filename.lower().endswith(('.csv', '.xlsx', '.xls')):
+            return jsonify({
+                'success': False,
+                'error': 'Unsupported file type. Use .xlsx/.xls/.csv'
+            }), 400
+
+        # Generate a unique filename
+        import uuid
+
+        unique_filename = f"{uuid.uuid4().hex}_{filename}"
+        filepath = os.path.join(
+            app.config['UPLOAD_FOLDER'],
+            unique_filename
+        )
+
+        file.save(filepath)
+
+        # Read uploaded file
         if filename.lower().endswith('.csv'):
             df = pd.read_csv(filepath)
-        elif filename.lower().endswith(('.xlsx', '.xls')):
+        else:
             try:
                 df = pd.read_excel(filepath)
             except ImportError as e:
-                # Catch the missing openpyxl/xlrd dependency gracefully
-                if 'openpyxl' in str(e).lower() or 'xlrd' in str(e).lower():
-                    return jsonify({
-                        'success': False, 
-                        'error': 'Missing dependency! Please run: pip install openpyxl in your terminal, then restart the app.'
-                    }), 400
-                raise e
-        else:
-            return jsonify({'success': False, 'error': 'Unsupported file type. Use .xlsx/.xls/.csv'}), 400
+                return jsonify({
+                    'success': False,
+                    'error': 'Missing Excel dependency. Add openpyxl to requirements.txt and redeploy.'
+                }), 400
+
+        if df.empty:
+            return jsonify({
+                'success': False,
+                'error': 'The uploaded file is empty.'
+            }), 400
+
+        # Limit rows to reduce Render timeout risk
+        if len(df) > 200:
+            return jsonify({
+                'success': False,
+                'error': 'Maximum 200 reviews per upload. Please split your Excel file into smaller files.'
+            }), 400
 
         # Normalize column names
         alias_map = {
-            'rating': 'rating', 
+            'rating': 'rating',
             'sentiment_score': 'sentiment_score',
             'sentimentscore': 'sentiment_score',
-            'helpful_votes': 'helpfulVoteCount', 
+            'helpful_votes': 'helpfulVoteCount',
             'helpfulvotes': 'helpfulVoteCount',
             'helpfulvotecount': 'helpfulVoteCount',
-            'verified_purchase': 'verifiedPurchase', 
+            'verified_purchase': 'verifiedPurchase',
             'verifiedpurchase': 'verifiedPurchase',
-            'review_length': 'review_length', 
+            'review_length': 'review_length',
             'reviewlength': 'review_length',
-            'word_count': 'word_count', 
+            'word_count': 'word_count',
             'wordcount': 'word_count',
             'review_text': 'review_text',
             'text': 'review_text'
         }
-        df.columns = [alias_map.get(str(c).lower().strip(), str(c).lower().strip()) for c in df.columns]
 
-        required = ['rating', 'sentiment_score', 'helpfulVoteCount', 'verifiedPurchase', 'review_length', 'word_count']
+        df.columns = [
+            alias_map.get(
+                str(c).lower().strip(),
+                str(c).lower().strip()
+            )
+            for c in df.columns
+        ]
+
+        required = [
+            'rating',
+            'sentiment_score',
+            'helpfulVoteCount',
+            'verifiedPurchase',
+            'review_length',
+            'word_count'
+        ]
+
         missing = [c for c in required if c not in df.columns]
+
         if missing:
-            return jsonify({'success': False, 'error': f'Missing columns: {", ".join(missing)}'}), 400
+            return jsonify({
+                'success': False,
+                'error': f'Missing columns: {", ".join(missing)}'
+            }), 400
 
         results = []
-        for idx, row in df.iterrows():
+
+        # Process rows
+        for idx, row in enumerate(
+            df.to_dict(orient='records')
+        ):
             try:
                 rating = float(row['rating'])
                 sentiment = float(row['sentiment_score'])
@@ -338,12 +396,21 @@ def upload_excel():
                 verified = float(row['verifiedPurchase'])
                 length = float(row['review_length'])
                 words = float(row['word_count'])
-                text = str(row.get('review_text', '')) if 'review_text' in row and pd.notna(row['review_text']) else ''
+
+                review_text = row.get('review_text', '')
+
+                if pd.isna(review_text):
+                    review_text = ''
+                else:
+                    review_text = str(review_text)
+
             except (ValueError, TypeError) as ve:
                 results.append({
-                    'row': int(idx) + 1,
-                    'rating': row.get('rating', ''),
-                    'sentiment_score': row.get('sentiment_score', ''),
+                    'row': idx + 1,
+                    'rating': str(row.get('rating', '')),
+                    'sentiment_score': str(
+                        row.get('sentiment_score', '')
+                    ),
                     'prediction': 'ERROR',
                     'confidence': 0,
                     'fake_probability': 0,
@@ -356,31 +423,64 @@ def upload_excel():
                 })
                 continue
 
-            is_fake, avg_prob = predict_logic(rating, sentiment, votes, verified, length, words, text)
-            
+            # Use your existing ML prediction function
+            is_fake, avg_prob = predict_logic(
+                rating,
+                sentiment,
+                votes,
+                verified,
+                length,
+                words,
+                review_text
+            )
+
             fake_pct = avg_prob * 100.0
+
             if not is_fake:
                 fake_pct = 100.0 - fake_pct
-            conf_pct = fake_pct if is_fake else (100.0 - fake_pct)
-            final_verdict = 'FAKE' if is_fake else 'GENUINE'
+
+            conf_pct = (
+                fake_pct if is_fake else 100.0 - fake_pct
+            )
+
+            final_verdict = (
+                'FAKE' if is_fake else 'GENUINE'
+            )
 
             results.append({
-                'row': int(idx) + 1,
+                'row': idx + 1,
                 'rating': rating,
                 'sentiment_score': sentiment,
                 'prediction': final_verdict,
                 'confidence': round(conf_pct, 2),
                 'fake_probability': round(fake_pct, 2),
                 'model_predictions': {
-                    'random_forest': {'prediction': final_verdict, 'confidence': round(conf_pct, 2)},
-                    'xgboost': {'prediction': final_verdict, 'confidence': round(conf_pct, 2)},
-                    'logistic_regression': {'prediction': final_verdict, 'confidence': round(conf_pct, 2)},
+                    'random_forest': {
+                        'prediction': final_verdict,
+                        'confidence': round(conf_pct, 2)
+                    },
+                    'xgboost': {
+                        'prediction': final_verdict,
+                        'confidence': round(conf_pct, 2)
+                    },
+                    'logistic_regression': {
+                        'prediction': final_verdict,
+                        'confidence': round(conf_pct, 2)
+                    }
                 }
             })
 
         total = len(results)
-        fake_count = sum(1 for r in results if r['prediction'] == 'FAKE')
-        genuine_count = sum(1 for r in results if r['prediction'] == 'GENUINE')
+
+        fake_count = sum(
+            1 for r in results
+            if r['prediction'] == 'FAKE'
+        )
+
+        genuine_count = sum(
+            1 for r in results
+            if r['prediction'] == 'GENUINE'
+        )
 
         return jsonify({
             'success': True,
@@ -393,14 +493,18 @@ def upload_excel():
     except Exception as e:
         import traceback
         traceback.print_exc()
-        return jsonify({'success': False, 'error': str(e)}), 500
+
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
     finally:
-        if os.path.exists(filepath):
+        if filepath and os.path.exists(filepath):
             try:
                 os.remove(filepath)
             except OSError:
                 pass
-
 # ============================================================
 #  CHART CREATION
 # ============================================================
